@@ -10,6 +10,8 @@ export default function App() {
   const [current, setCurrent] = useState(null)
   const [playing, setPlaying] = useState(false)
   const [mobilePlayerOpen, setMobilePlayerOpen] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
   const [error, setError] = useState('')
   const audio = useRef(null)
 
@@ -18,13 +20,17 @@ export default function App() {
   }, [])
   useEffect(() => {
     if (!current) return
+    setCurrentTime(0)
+    setDuration(0)
     audio.current.src = `${base}${current.streamUrl}`
     audio.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
   }, [current])
   function toggle() { if (!audio.current || !current) return; playing ? audio.current.pause() : audio.current.play(); setPlaying(!playing) }
+  function seek(value) { const time = Number(value); audio.current.currentTime = time; setCurrentTime(time) }
+  function formatTime(value) { if (!Number.isFinite(value)) return '0:00'; const minutes = Math.floor(value / 60); const seconds = Math.floor(value % 60).toString().padStart(2, '0'); return `${minutes}:${seconds}` }
 
   return <main className="min-h-screen bg-ink font-sans text-white selection:bg-acid selection:text-black">
-    <audio ref={audio} onEnded={() => setPlaying(false)} />
+    <audio ref={audio} onEnded={() => setPlaying(false)} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} />
     <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-7"><a href="/" aria-label="EJC Music"><img src="/logo_encontro.png" alt="Encontro de Jovens com Cristo" className="h-12 w-auto object-contain" /></a><span className="flex items-center gap-4"><a href="/admin" className="text-xs font-bold text-white/45 no-underline hover:text-acid">ADMIN</a><span className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/60">Encontro de Jovens com Cristo</span></span></header>
     <section className="mx-auto max-w-6xl px-6 pt-14 pb-36"><p className="text-acid text-sm font-bold tracking-[.22em]">A TRILHA DO NOSSO ENCONTRO</p><h1 className="mt-4 text-5xl font-black tracking-tight md:text-7xl">Fé que une.<br/>Som que fica.</h1>
       <p className="mt-6 max-w-md text-base leading-7 text-white/55">Canções para lembrar que Cristo é o centro e que ninguém caminha sozinho.</p>
@@ -35,13 +41,13 @@ export default function App() {
       </button>)}</div>
       {!tracks.length && !error && <p className="mt-12 text-white/50">A primeira canção do encontro começa aqui.</p>}
     </section>
-    {current && <footer onClick={() => setMobilePlayerOpen(true)} className="fixed inset-x-0 bottom-0 cursor-pointer border-t border-white/10 bg-[#161616]/95 backdrop-blur"><div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3"><div className="min-w-0 flex-1"><b className="block truncate">{current.title}</b><small className="text-white/55">{current.artist}</small></div><button aria-label={playing ? 'Pausar' : 'Tocar'} onClick={(event) => { event.stopPropagation(); toggle() }} className="grid h-11 w-11 place-items-center rounded-full bg-acid text-black">{playing ? <Pause size={18} fill="currentColor"/> : <Play size={18} fill="currentColor"/>}</button></div></footer>}
+    {current && <footer onClick={() => setMobilePlayerOpen(true)} className="fixed inset-x-0 bottom-0 cursor-pointer border-t border-white/10 bg-[#161616]/95 backdrop-blur"><div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3"><div className="min-w-0 flex-1"><b className="block truncate">{current.title}</b><small className="text-white/55">{current.artist}</small></div><button aria-label={playing ? 'Pausar' : 'Tocar'} onClick={(event) => { event.stopPropagation(); toggle() }} className="grid h-11 w-11 place-items-center rounded-full bg-acid text-black">{playing ? <Pause size={18} fill="currentColor"/> : <Play size={18} fill="currentColor"/>}</button></div><div className="compact-timeline" style={{ '--progress': `${duration ? (currentTime / duration) * 100 : 0}%` }} /></footer>}
     {current && <section className={`mobile-now-playing ${mobilePlayerOpen ? 'open' : ''}`} aria-hidden={!mobilePlayerOpen}>
       <div className="mobile-player-bg" style={current.coverUrl ? { backgroundImage: `url(${base}${current.coverUrl})` } : undefined} /><div className="mobile-player-shade" />
       <div className="mobile-player-content"><header><button onClick={() => setMobilePlayerOpen(false)} aria-label="Fechar player"><ChevronDown size={30}/></button><p>TOCANDO NO EJC MUSIC</p><span /></header>
         <div className={`mobile-cover ${playing ? 'is-playing' : ''}`}>{current.coverUrl ? <img src={`${base}${current.coverUrl}`} alt={`Capa de ${current.title}`} /> : <div className="mobile-cover-empty"><Sparkles size={68}/></div>}<i /></div>
         <div className="mobile-track-title"><div><h2>{current.title}</h2><p>{current.artist}</p></div><button aria-label="Favoritar"><Heart size={27}/></button></div>
-        <div className="mobile-progress"><div><i /></div><span><b>0:00</b><b>--:--</b></span></div>
+        <div className="mobile-progress"><input aria-label="Linha do tempo" type="range" min="0" max={duration || 0} step="0.1" value={Math.min(currentTime, duration || 0)} onChange={(event) => seek(event.target.value)} style={{ '--progress': `${duration ? (currentTime / duration) * 100 : 0}%` }} /><span><b>{formatTime(currentTime)}</b><b>{formatTime(duration)}</b></span></div>
         <div className="mobile-controls"><button aria-label="Faixa anterior"><SkipBack size={28} fill="currentColor"/></button><button onClick={toggle} className="mobile-play" aria-label={playing ? 'Pausar' : 'Tocar'}>{playing ? <Pause size={25} fill="currentColor"/> : <Play size={25} fill="currentColor"/>}</button><button aria-label="Próxima faixa"><SkipForward size={28} fill="currentColor"/></button></div>
         <div className={`sound-wave ${playing ? 'is-playing' : ''}`} aria-label="Em reprodução"><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>
       </div>
