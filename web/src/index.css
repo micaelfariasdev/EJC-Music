@@ -1,0 +1,4 @@
+@import "tailwindcss";
+@theme { --color-ink: #101010; --color-acid: #d8ff38; }
+html { background: #101010; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }

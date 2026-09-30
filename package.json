@@ -1,0 +1,17 @@
+{
+  "name": "ejc-music",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix api\" \"npm run dev --prefix web\"",
+    "build": "npm run build --prefix web",
+    "start": "npm start --prefix api"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
