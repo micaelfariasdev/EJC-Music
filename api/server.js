@@ -75,6 +75,25 @@ app.post('/tracks', requireAdmin, upload.fields([{ name: 'audio', maxCount: 1 },
   db.prepare('INSERT INTO tracks (id,title,artist,album,cover_filename,audio_filename,mime_type) VALUES (@id,@title,@artist,@album,@cover_filename,@audio_filename,@mime_type)').run(track)
   res.status(201).json(toTrack(track))
 })
+app.patch('/tracks/:id', requireAdmin, upload.fields([{ name: 'audio', maxCount: 1 }, { name: 'cover', maxCount: 1 }]), (req, res) => {
+  const previous = db.prepare('SELECT * FROM tracks WHERE id = ?').get(req.params.id)
+  if (!previous) return res.sendStatus(404)
+  const audio = req.files?.audio?.[0]
+  const cover = req.files?.cover?.[0]
+  const track = {
+    ...previous,
+    title: req.body.title?.trim() || previous.title,
+    artist: req.body.artist?.trim() || previous.artist,
+    album: req.body.album?.trim() || previous.album,
+    audio_filename: audio?.filename || previous.audio_filename,
+    mime_type: audio?.mimetype || previous.mime_type,
+    cover_filename: cover?.filename || previous.cover_filename,
+  }
+  db.prepare('UPDATE tracks SET title=@title, artist=@artist, album=@album, cover_filename=@cover_filename, audio_filename=@audio_filename, mime_type=@mime_type WHERE id=@id').run(track)
+  if (audio && previous.audio_filename !== audio.filename) fs.unlink(path.join(audioRoot, previous.audio_filename), () => {})
+  if (cover && previous.cover_filename && previous.cover_filename !== cover.filename) fs.unlink(path.join(coverRoot, previous.cover_filename), () => {})
+  res.json(toTrack(track))
+})
 app.use((err, _, res, __) => {
   if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'O arquivo é maior que o limite de 30 MB.' })
   res.status(400).json({ error: err.message || 'Erro no upload' })
